@@ -11,12 +11,25 @@ export const useChatStore = create((set, get) => ({
   isMessagesLoading: false,
 
   getUsers: async () => {
+    // Check if user is authenticated before making the request
+    const { authUser } = useAuthStore.getState();
+    if (!authUser) {
+      set({ users: [], isUsersLoading: false });
+      return;
+    }
+
     set({ isUsersLoading: true });
     try {
       const res = await axiosInstance.get("/messages/users");
       set({ users: res.data });
     } catch (error) {
-      toast.error(error.response.data.message);
+      // 401 is expected if user is not authenticated, don't show error
+      if (error.response?.status === 401) {
+        set({ users: [] });
+      } else {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || "Failed to load users";
+        toast.error(errorMessage);
+      }
     } finally {
       set({ isUsersLoading: false });
     }
@@ -28,7 +41,10 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get(`/messages/${userId}`);
       set({ messages: res.data });
     } catch (error) {
-      toast.error(error.response.data.message);
+      if (error.response?.status !== 401) {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || "Failed to load messages";
+        toast.error(errorMessage);
+      }
     } finally {
       set({ isMessagesLoading: false });
     }
@@ -39,7 +55,8 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
       set({ messages: [...messages, res.data] });
     } catch (error) {
-      toast.error(error.response.data.message);
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || "Failed to send message";
+      toast.error(errorMessage);
     }
   },
 
