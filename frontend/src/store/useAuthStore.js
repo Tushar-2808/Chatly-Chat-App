@@ -24,7 +24,10 @@ export const useAuthStore = create((set, get) => ({
       set({ authUser: res.data });
       get().connectSocket();
     } catch (error) {
-      console.log("Error in checkAuth:", error);
+      // 401 is expected for unauthenticated users, don't log it as an error
+      if (error.response?.status !== 401) {
+        console.log("Error in checkAuth:", error);
+      }
       set({ authUser: null });
     } finally {
       set({ isCheckingAuth: false });
